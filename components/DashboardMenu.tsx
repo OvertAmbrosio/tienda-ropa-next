@@ -14,7 +14,7 @@ const ALL_ITEMS = {
   products: { label: 'Gestión de productos', href: '/products' },
   sales: { label: 'Gestión de ventas', href: '/sales' },
   customers: { label: 'Gestión de clientes', href: '/customers' },
-  users: { label: 'Gestión de usuarios', href: '/users' },
+  users: { label: 'Administración de usuarios', href: '/users' },
 }
 
 export default function DashboardMenu() {
