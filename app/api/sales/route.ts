@@ -42,6 +42,7 @@ export async function POST(req: Request) {
 
     const body = await req.json()
     const customerName = typeof body?.customerName === 'string' ? body.customerName.trim() : null
+    const customerNameUpper = customerName ? customerName.toUpperCase() : null
     const saleDateStr = typeof body?.saleDate === 'string' ? body.saleDate : null
     const items = Array.isArray(body?.items) ? body.items : []
 
@@ -76,21 +77,21 @@ export async function POST(req: Request) {
 
       // Resolve customer (optional): find by name insensitive, else create
       let customerId: number | null = null
-      if (customerName && customerName.length > 0) {
+      if (customerNameUpper && customerNameUpper.length > 0) {
         const existing = await tx.customer.findFirst({
-          where: { name: customerName },
+          where: { name: customerNameUpper },
           select: { id: true },
         })
         if (existing) customerId = existing.id
         else {
-          const createdCustomer = await tx.customer.create({ data: { name: customerName } })
+          const createdCustomer = await tx.customer.create({ data: { name: customerNameUpper } })
           customerId = createdCustomer.id
         }
       }
 
       const sale = await tx.sale.create({
         data: {
-          customerName: customerName || null,
+          customerName: customerNameUpper || null,
           customerId,
           saleDate,
           total: 0, // temp, update after creating items

@@ -13,7 +13,8 @@ type UserStore = {
 const ALL_ITEMS = {
   products: { label: 'Gestión de productos', href: '/products' },
   sales: { label: 'Gestión de ventas', href: '/sales' },
-  users: { label: 'Administración de usuarios', href: '/customers' },
+  customers: { label: 'Gestión de clientes', href: '/customers' },
+  users: { label: 'Gestión de usuarios', href: '/users' },
 }
 
 export default function DashboardMenu() {
@@ -33,6 +34,7 @@ export default function DashboardMenu() {
     if (roles.includes('ADMIN')) {
       set.set('products', ALL_ITEMS.products)
       set.set('sales', ALL_ITEMS.sales)
+      set.set('customers', ALL_ITEMS.customers)
       set.set('users', ALL_ITEMS.users)
     }
     if (roles.includes('MAINTAINER')) {

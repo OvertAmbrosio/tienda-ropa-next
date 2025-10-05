@@ -105,18 +105,17 @@ export default function CustomersPage() {
             <thead className="text-slate-400">
               <tr>
                 <th className="px-2 py-2 font-medium">Nombre</th>
+                <th className="px-2 py-2 font-medium text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 && (
                 <tr>
-                  <td className="px-2 py-6 text-center text-slate-400">No hay clientes.</td>
+                  <td className="px-2 py-6 text-center text-slate-400" colSpan={2}>No hay clientes.</td>
                 </tr>
               )}
               {items.map((c) => (
-                <tr key={c.id} className="border-t border-white/5">
-                  <td className="px-2 py-2">{c.name}</td>
-                </tr>
+                <CustomerRow key={c.id} customer={c} onUpdated={() => load(query)} />
               ))}
             </tbody>
           </table>
@@ -125,5 +124,73 @@ export default function CustomersPage() {
 
       <ScreenLoader active={loading} message="Cargando clientes..." />
     </main>
+  )
+}
+
+function CustomerRow({ customer, onUpdated }: { customer: { id: number; name: string }, onUpdated: () => void }) {
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(customer.name)
+  const [busy, setBusy] = useState(false)
+
+  const save = async () => {
+    await runUiAction({
+      setLoading: setBusy,
+      action: async () => {
+        const res = await fetch(`/api/customers/${customer.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data?.message || 'No se pudo actualizar')
+        return true
+      },
+      successMessage: 'Cliente actualizado',
+      onSuccess: () => { setEditing(false); onUpdated() },
+    })
+  }
+
+  const remove = async () => {
+    await runUiAction({
+      setLoading: setBusy,
+      action: async () => {
+        const res = await fetch(`/api/customers/${customer.id}`, { method: 'DELETE' })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.message || 'No se pudo eliminar')
+        return true
+      },
+      successMessage: 'Cliente eliminado',
+      onSuccess: () => onUpdated(),
+      errorMessage: (e) => e.message || 'No se pudo eliminar',
+    })
+  }
+
+  return (
+    <tr className="border-t border-white/5">
+      <td className="px-2 py-2">
+        {editing ? (
+          <input
+            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-slate-100 outline-none ring-brand-500/30 focus:ring-4"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        ) : (
+          <span>{customer.name}</span>
+        )}
+      </td>
+      <td className="px-2 py-2 text-right">
+        {!editing ? (
+          <div className="inline-flex gap-2">
+            <button onClick={() => { setEditing(true); setName(customer.name) }} className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-200 hover:bg-white/10">Editar</button>
+            <button onClick={remove} className="rounded-lg border border-white/10 bg-rose-500/20 px-3 py-1.5 text-sm text-rose-100 hover:bg-rose-500/30">Eliminar</button>
+          </div>
+        ) : (
+          <div className="inline-flex gap-2">
+            <button disabled={busy} onClick={save} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm text-white shadow-glow disabled:opacity-60">Guardar</button>
+            <button disabled={busy} onClick={() => setEditing(false)} className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-200 hover:bg-white/10">Cancelar</button>
+          </div>
+        )}
+      </td>
+    </tr>
   )
 }

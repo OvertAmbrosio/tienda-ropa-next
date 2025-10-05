@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
 
     const url = new URL(request.url)
-    const q = (url.searchParams.get('query') || '').trim()
+    const q = (url.searchParams.get('query') || '').trim().toUpperCase()
     // SQLite suele ser case-insensitive por defecto; evitamos 'mode: "insensitive"' para compatibilidad
     const where = q ? { name: { contains: q } } : {}
     const take = q ? 10 : 50
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     if (!hasAnyRole(user, ['ADMIN'])) return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
 
     const body = await request.json()
-    const name = String(body?.name ?? '').trim()
+    const name = String(body?.name ?? '').trim().toUpperCase()
     if (!name) return NextResponse.json({ message: 'Nombre requerido' }, { status: 400 })
 
     const existing = await prisma.customer.findFirst({ where: { name }, select: { id: true, name: true } })

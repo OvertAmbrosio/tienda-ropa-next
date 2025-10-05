@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma, ensureDbReady } from '@/lib/prisma'
 import { getSessionUser, hasAnyRole } from '@/lib/auth'
 
 export async function GET() {
+  await ensureDbReady()
   try {
     const user = await getSessionUser()
     if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
@@ -15,6 +16,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  await ensureDbReady()
   try {
     const user = await getSessionUser()
     if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
