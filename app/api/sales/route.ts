@@ -138,6 +138,7 @@ export async function POST(req: Request) {
           saleDate,
           total: 0, // temp, update after creating items
           status: 'COMPLETED', // Venta del admin ya está completada
+          source: 'ADMIN', // Venta creada desde el panel admin
         },
       });
 

@@ -28,6 +28,7 @@ type Sale = {
   saleDate: string;
   total: number;
   status: string;
+  source: string;
   createdAt: string;
   items: SaleItem[];
 };
@@ -69,10 +70,19 @@ function todayISO() {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
+function tomorrowISO() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
 export default function SalesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadingSales, setLoadingSales] = useState(false);
   const [sales, setSales] = useState<Sale[]>([]);
 
   const [customerName, setCustomerName] = useState("");
@@ -80,9 +90,10 @@ export default function SalesPage() {
     Array<{ id: number; name: string }>
   >([]);
   const [showCustomerOpts, setShowCustomerOpts] = useState(false);
+  const [searchingCustomer, setSearchingCustomer] = useState(false);
   const [saleDate, setSaleDate] = useState(todayISO());
   const [startDate, setStartDate] = useState(todayISO());
-  const [endDate, setEndDate] = useState(todayISO());
+  const [endDate, setEndDate] = useState(tomorrowISO());
   const [items, setItems] = useState<NewItem[]>([
     { productId: "", quantity: 1 },
   ]);
@@ -121,6 +132,7 @@ export default function SalesPage() {
   }
 
   async function loadSalesFor(start: string, end: string) {
+    setLoadingSales(true);
     try {
       const res = await fetch(`/api/sales?startDate=${start}&endDate=${end}`, {
         cache: "no-store",
@@ -131,6 +143,8 @@ export default function SalesPage() {
       setSales(data.items);
     } catch (e: any) {
       toast.error(e.message || "Error al cargar ventas");
+    } finally {
+      setLoadingSales(false);
     }
   }
 
@@ -158,8 +172,10 @@ export default function SalesPage() {
     if (q.length < 2) {
       setCustomerOpts([]);
       setShowCustomerOpts(false);
+      setSearchingCustomer(false);
       return;
     }
+    setSearchingCustomer(true);
     const t = setTimeout(async () => {
       try {
         const res = await fetch(
@@ -173,6 +189,8 @@ export default function SalesPage() {
         }
       } catch {
         // ignore
+      } finally {
+        setSearchingCustomer(false);
       }
     }, 250);
     return () => clearTimeout(t);
@@ -239,7 +257,7 @@ export default function SalesPage() {
               <div className="relative">
                 <input
                   placeholder="Nombre del cliente (opcional)"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-slate-100 outline-none ring-brand-500/30 focus:ring-4"
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 pr-10 text-slate-100 outline-none ring-brand-500/30 focus:ring-4"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   onFocus={() => setShowCustomerOpts(customerOpts.length > 0)}
@@ -247,6 +265,14 @@ export default function SalesPage() {
                     setTimeout(() => setShowCustomerOpts(false), 120)
                   }
                 />
+                {searchingCustomer && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <svg className="h-5 w-5 animate-spin text-slate-400" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                )}
                 {showCustomerOpts && (
                   <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-white/10 bg-slate-900/95 backdrop-blur">
                     {customerOpts.map((c) => (
@@ -422,13 +448,37 @@ export default function SalesPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 relative">
+          {loadingSales && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-slate-900/60 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-3">
+                <svg className="h-8 w-8 animate-spin text-slate-200" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-sm text-slate-300">Cargando ventas...</span>
+              </div>
+            </div>
+          )}
           <div className="mb-4 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-medium">Listado de ventas</h2>
-              <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-200">
-                Total período:{" "}
-                <span className="font-semibold">S/ {totalDay.toFixed(2)}</span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => loadSalesFor(startDate, endDate)}
+                  disabled={loadingSales}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-200 hover:bg-white/10 disabled:opacity-50"
+                  title="Actualizar listado"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Actualizar
+                </button>
+                <div className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-200">
+                  Total período:{" "}
+                  <span className="font-semibold">S/ {totalDay.toFixed(2)}</span>
+                </div>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -456,6 +506,7 @@ export default function SalesPage() {
                 <th className="px-2 py-2 font-medium">Items</th>
                 <th className="px-2 py-2 font-medium">Total</th>
                 <th className="px-2 py-2 font-medium">Estado</th>
+                <th className="px-2 py-2 font-medium">Origen</th>
                 <th className="px-2 py-2 font-medium text-right">Acciones</th>
               </tr>
             </thead>
@@ -463,7 +514,7 @@ export default function SalesPage() {
               {sales.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-2 py-6 text-center text-slate-400"
                   >
                     No hay ventas registradas.
@@ -474,7 +525,7 @@ export default function SalesPage() {
                 <SaleRow
                   key={s.id}
                   sale={s}
-                  onUpdated={() => loadSalesFor(startDate, endDate)}
+                  onUpdated={async () => await loadSalesFor(startDate, endDate)}
                 />
               ))}
             </tbody>
@@ -487,7 +538,7 @@ export default function SalesPage() {
   );
 }
 
-function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => void }) {
+function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -514,6 +565,8 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => void }) {
       },
       successMessage: `Estado actualizado a ${STATUS_LABELS[newStatus]}`,
       onSuccess: () => {
+        // Close modal and trigger table reload
+        setShowModal(false);
         onUpdated();
       },
     });
@@ -545,6 +598,17 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => void }) {
             {statusLabel}
           </span>
         </td>
+        <td className="px-2 py-2">
+          <span
+            className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${
+              sale.source === 'WEB'
+                ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/30'
+                : 'bg-slate-500/20 text-slate-200 border-slate-400/30'
+            }`}
+          >
+            {sale.source === 'WEB' ? '🌐 Web' : '💼 Admin'}
+          </span>
+        </td>
         <td className="px-2 py-2 text-right">
           <div className="inline-flex items-center gap-2">
             <button
@@ -565,7 +629,7 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => void }) {
       </tr>
       {showDetails && (
         <tr className="border-t border-white/5 bg-white/5">
-          <td colSpan={6} className="px-4 py-4">
+          <td colSpan={7} className="px-4 py-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <h4 className="mb-2 text-sm font-medium text-slate-200">Información del cliente</h4>
@@ -598,12 +662,13 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => void }) {
       {/* Modal para cambiar estado */}
       {showModal && (
         <tr>
-          <td colSpan={6} className="p-0">
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)}>
+          <td colSpan={7} className="p-0">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => !busy && setShowModal(false)}>
               <div className="relative m-4 w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="absolute right-4 top-4 text-slate-400 hover:text-slate-200"
+                  disabled={busy}
+                  className="absolute right-4 top-4 text-slate-400 hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -633,16 +698,20 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => void }) {
                       <button
                         key={status}
                         disabled={busy}
-                        onClick={() => {
-                          changeStatus(status);
-                          setShowModal(false);
-                        }}
+                        onClick={() => changeStatus(status)}
                         className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-slate-200 hover:bg-white/10 disabled:opacity-60"
                       >
                         <span>{STATUS_LABELS[status]}</span>
-                        <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                        {busy ? (
+                          <svg className="h-5 w-5 animate-spin text-slate-400" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        )}
                       </button>
                     ))}
                   </div>

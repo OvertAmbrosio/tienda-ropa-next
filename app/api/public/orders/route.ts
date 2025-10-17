@@ -65,6 +65,7 @@ export async function POST(req: Request) {
           customerId: customer.id,
           total,
           status: 'PENDING', // Orden web en estado pendiente
+          source: 'WEB', // Venta creada desde la web
         },
       })
 

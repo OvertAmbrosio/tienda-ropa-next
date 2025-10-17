@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { toast } from '@/lib/toast'
 
 export default function CheckoutPage() {
   const [cart, setCart] = useState<Array<{ id: number; name: string; price: number; qty: number }>>([])
@@ -60,8 +61,11 @@ export default function CheckoutPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data?.message || 'No se pudo confirmar el pago')
       localStorage.setItem('cart', JSON.stringify([]))
-      alert(`¡Pago confirmado! Orden #${orderId} procesada. ¡Gracias por tu compra!`)
-      window.location.href = '/'
+      toast.success(`¡Pago confirmado! Orden #${orderId} procesada. ¡Gracias por tu compra!`)
+      // Redirect after showing toast
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 2000)
     } catch (err: any) {
       setError(err?.message || 'Error al confirmar el pago')
     } finally {

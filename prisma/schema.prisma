@@ -16,6 +16,11 @@ enum SaleStatus {
   CANCELED   // Cancelada - orden cancelada
 }
 
+enum SaleSource {
+  WEB        // Venta creada desde el checkout web
+  ADMIN      // Venta creada desde el panel de administración
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
@@ -50,6 +55,7 @@ model Sale {
   saleDate     DateTime   @default(now())
   total        Float
   status       SaleStatus @default(PENDING)
+  source       SaleSource @default(ADMIN)
   createdAt    DateTime   @default(now())
   items        SaleItem[]
 }
