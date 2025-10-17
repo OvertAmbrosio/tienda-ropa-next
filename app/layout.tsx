@@ -3,8 +3,8 @@ import type { Metadata } from 'next'
 import Toaster from '@/components/Toaster'
 
 export const metadata: Metadata = {
-  title: 'Tienda de Ropa | Login',
-  description: 'Accede para administrar tu tienda de ropa',
+  title: 'RUSARFI | Catálogo de Ropa',
+  description: 'Explora el catálogo de RUSARFI y encuentra tus prendas favoritas al mejor precio.',
 }
 
 export default function RootLayout({

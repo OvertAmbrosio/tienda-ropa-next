@@ -7,6 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum SaleStatus {
+  PENDING    // Pendiente - orden web recién creada
+  PAID       // Pagada - pago confirmado
+  ACCEPTED   // Aceptada - orden confirmada por admin
+  SHIPPING   // En camino - enviando al cliente
+  COMPLETED  // Finalizada - entregada o completada
+  CANCELED   // Cancelada - orden cancelada
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
@@ -34,13 +43,14 @@ model Product {
 }
 
 model Sale {
-  id         Int      @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   customerName String?
-  customer     Customer? @relation(fields: [customerId], references: [id])
+  customer     Customer?  @relation(fields: [customerId], references: [id])
   customerId   Int?
-  saleDate     DateTime @default(now())
+  saleDate     DateTime   @default(now())
   total        Float
-  createdAt    DateTime @default(now())
+  status       SaleStatus @default(PENDING)
+  createdAt    DateTime   @default(now())
   items        SaleItem[]
 }
 
@@ -58,6 +68,8 @@ model SaleItem {
 model Customer {
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  email     String?
+  address   String?
   createdAt DateTime @default(now())
   sales     Sale[]
 }

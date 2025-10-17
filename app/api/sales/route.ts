@@ -3,14 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser, hasAnyRole } from "@/lib/auth";
 import type { Prisma } from "@prisma/client";
 
-function getDayBounds(date?: string | null) {
-  const base = date ? new Date(date) : new Date();
-  const start = new Date(base.getFullYear(), base.getMonth(), base.getDate());
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-  return { start, end };
-}
-
 export async function GET(request: Request) {
   try {
     const user = await getSessionUser();
@@ -18,12 +10,39 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
     const url = new URL(request.url);
-    const date = url.searchParams.get("date");
-    const { start, end } = getDayBounds(date);
+    const startDate = url.searchParams.get("startDate");
+    const endDate = url.searchParams.get("endDate");
+
+    // Default to today if no dates provided
+    const today = new Date();
+    const defaultStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const defaultEnd = new Date(defaultStart);
+    defaultEnd.setDate(defaultEnd.getDate() + 1);
+
+    let start: Date;
+    let end: Date;
+
+    if (startDate) {
+      start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+    } else {
+      start = defaultStart;
+    }
+
+    if (endDate) {
+      end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+    } else {
+      end = defaultEnd;
+    }
+
     const sales = await prisma.sale.findMany({
-      where: { saleDate: { gte: start, lt: end } },
+      where: { saleDate: { gte: start, lte: end } },
       orderBy: { createdAt: "desc" },
       include: {
+        customer: {
+          select: { id: true, name: true, email: true, address: true },
+        },
         items: {
           include: {
             product: { select: { id: true, name: true, price: true } },
@@ -118,6 +137,7 @@ export async function POST(req: Request) {
           customerId,
           saleDate,
           total: 0, // temp, update after creating items
+          status: 'COMPLETED', // Venta del admin ya está completada
         },
       });
 

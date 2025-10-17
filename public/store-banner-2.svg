@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="540" viewBox="0 0 1920 540" fill="none">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="wave1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#a78bfa" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="chip" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <filter id="blur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="30" />
+    </filter>
+  </defs>
+
+  <rect width="1920" height="540" fill="url(#bg2)"/>
+
+  <!-- abstract waves -->
+  <g opacity="0.7">
+    <path d="M0,420 C320,340 640,500 960,440 C1280,380 1600,480 1920,420 L1920,540 L0,540 Z" fill="url(#wave1)"/>
+    <path d="M0,300 C320,220 640,380 960,320 C1280,260 1600,360 1920,300 L1920,540 L0,540 Z" fill="url(#wave1)" opacity="0.5"/>
+  </g>
+
+  <!-- soft glows -->
+  <circle cx="220" cy="140" r="180" fill="#22d3ee" opacity="0.15" filter="url(#blur)"/>
+  <circle cx="1740" cy="260" r="220" fill="#a78bfa" opacity="0.15" filter="url(#blur)"/>
+
+  <!-- header text block -->
+  <g transform="translate(140,120)">
+    <text x="0" y="0" fill="#e5e7eb" font-family="Segoe UI, Roboto, Arial" font-size="66" font-weight="800">RUSARFI</text>
+    <text x="0" y="54" fill="#94a3b8" font-family="Segoe UI, Roboto, Arial" font-size="24">Tendencias en moda, a un clic</text>
+
+    <!-- badges -->
+    <g transform="translate(0,96)">
+      <rect x="0" y="-30" rx="999" width="180" height="40" fill="#0b1220" stroke="#1f2937"/>
+      <rect x="0" y="-30" rx="999" width="110" height="40" fill="url(#chip)"/>
+      <text x="18" y="-6" fill="#052e2b" font-family="Segoe UI, Roboto, Arial" font-size="16" font-weight="700">Nuevos</text>
+      <text x="130" y="-6" fill="#cbd5e1" font-family="Segoe UI, Roboto, Arial" font-size="16">Colecciones</text>
+    </g>
+  </g>
+
+  <!-- product silhouettes -->
+  <g transform="translate(1280,80)" opacity="0.45">
+    <rect x="0" y="0" width="520" height="340" rx="24" fill="#0b1220" stroke="#1f2937"/>
+    <rect x="60" y="60" width="220" height="220" rx="18" fill="#111827"/>
+    <rect x="300" y="60" width="160" height="24" rx="8" fill="#1f2937"/>
+    <rect x="300" y="98" width="220" height="18" rx="8" fill="#1f2937"/>
+    <rect x="300" y="130" width="160" height="18" rx="8" fill="#1f2937"/>
+    <rect x="300" y="170" width="120" height="36" rx="10" fill="#065f46"/>
+  </g>
+</svg>

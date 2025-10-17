@@ -85,7 +85,7 @@ export default function ProductsPage() {
             >
               {loading ? 'Actualizando…' : 'Actualizar'}
             </button>
-            <Link href="/dashboard" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 hover:bg-white/10">Volver al dashboard</Link>
+            <Link href="/admin/dashboard" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 hover:bg-white/10">Volver al dashboard</Link>
           </div>
         </div>
 

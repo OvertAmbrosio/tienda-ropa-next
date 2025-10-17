@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="1200" viewBox="0 0 1200 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#a78bfa" stop-opacity="0.25"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1200" rx="40" fill="url(#g1)"/>
+  <g opacity="0.6">
+    <circle cx="250" cy="300" r="220" fill="url(#g2)"/>
+    <circle cx="980" cy="420" r="260" fill="url(#g2)"/>
+    <circle cx="600" cy="980" r="220" fill="url(#g2)"/>
+  </g>
+  <g transform="translate(300,360)">
+    <rect x="0" y="0" width="600" height="600" rx="24" fill="#0b1220" stroke="#1f2937" stroke-width="4"/>
+    <rect x="80" y="80" width="440" height="380" rx="16" fill="#111827" stroke="#1f2937"/>
+    <rect x="80" y="500" width="280" height="28" rx="6" fill="#1f2937"/>
+    <rect x="80" y="540" width="180" height="22" rx="6" fill="#1f2937"/>
+    <rect x="380" y="500" width="140" height="40" rx="10" fill="#065f46"/>
+  </g>
+  <g transform="translate(0, 0)">
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#e5e7eb" font-family="Segoe UI, Roboto, Arial" font-size="44" opacity="0.9">Imagen de Producto</text>
+    <text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Segoe UI, Roboto, Arial" font-size="24" opacity="0.9">RUSARFI</text>
+  </g>
+</svg>

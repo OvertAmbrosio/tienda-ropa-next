@@ -17,14 +17,14 @@ export default function DashboardPage() {
     if (typeof window === 'undefined') return
     const raw = localStorage.getItem('user')
     if (!raw) {
-      router.replace('/')
+      router.replace('/admin')
       return
     }
     try {
       const u = JSON.parse(raw) as UserStore
       setUser(u)
     } catch {
-      router.replace('/')
+      router.replace('/admin')
       return
     } finally {
       setChecking(false)

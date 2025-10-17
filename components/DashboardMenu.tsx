@@ -11,10 +11,10 @@ type UserStore = {
 }
 
 const ALL_ITEMS = {
-  products: { label: 'Gestión de productos', href: '/products' },
-  sales: { label: 'Gestión de ventas', href: '/sales' },
-  customers: { label: 'Gestión de clientes', href: '/customers' },
-  users: { label: 'Administración de usuarios', href: '/users' },
+  products: { label: 'Gestión de productos', href: '/admin/products' },
+  sales: { label: 'Gestión de ventas', href: '/admin/sales' },
+  customers: { label: 'Gestión de clientes', href: '/admin/customers' },
+  users: { label: 'Administración de usuarios', href: '/admin/users' },
 }
 
 export default function DashboardMenu() {

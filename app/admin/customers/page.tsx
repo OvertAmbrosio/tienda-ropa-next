@@ -6,7 +6,7 @@ import { runUiAction } from '@/lib/ui-action'
 import ScreenLoader from '@/components/ScreenLoader'
 import Link from 'next/link'
 
- type Customer = { id: number; name: string }
+ type Customer = { id: number; name: string; email?: string | null; address?: string | null }
 
 export default function CustomersPage() {
   const [loading, setLoading] = useState(true)
@@ -66,7 +66,7 @@ export default function CustomersPage() {
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Clientes</h1>
-          <Link href="/dashboard" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 hover:bg-white/10">Volver al dashboard</Link>
+          <Link href="/admin/dashboard" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 hover:bg-white/10">Volver al dashboard</Link>
         </div>
 
         <div className="mb-6 grid gap-4 md:grid-cols-3">
@@ -105,13 +105,15 @@ export default function CustomersPage() {
             <thead className="text-slate-400">
               <tr>
                 <th className="px-2 py-2 font-medium">Nombre</th>
+                <th className="px-2 py-2 font-medium">Email</th>
+                <th className="px-2 py-2 font-medium">Dirección</th>
                 <th className="px-2 py-2 font-medium text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {items.length === 0 && (
                 <tr>
-                  <td className="px-2 py-6 text-center text-slate-400" colSpan={2}>No hay clientes.</td>
+                  <td className="px-2 py-6 text-center text-slate-400" colSpan={4}>No hay clientes.</td>
                 </tr>
               )}
               {items.map((c) => (
@@ -127,7 +129,7 @@ export default function CustomersPage() {
   )
 }
 
-function CustomerRow({ customer, onUpdated }: { customer: { id: number; name: string }, onUpdated: () => void }) {
+function CustomerRow({ customer, onUpdated }: { customer: { id: number; name: string; email?: string | null; address?: string | null }, onUpdated: () => void }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(customer.name)
   const [busy, setBusy] = useState(false)
@@ -177,6 +179,12 @@ function CustomerRow({ customer, onUpdated }: { customer: { id: number; name: st
         ) : (
           <span>{customer.name}</span>
         )}
+      </td>
+      <td className="px-2 py-2">
+        <span className="text-slate-300">{customer.email || '-'}</span>
+      </td>
+      <td className="px-2 py-2">
+        <span className="text-slate-300">{customer.address || '-'}</span>
       </td>
       <td className="px-2 py-2 text-right">
         {!editing ? (

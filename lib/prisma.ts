@@ -32,6 +32,7 @@ async function tablesExist(): Promise<boolean> {
   } catch {
     return false
   }
+
 }
 
 async function ensureSchemaDDL(): Promise<void> {
@@ -100,6 +101,7 @@ async function ensureSchemaDDL(): Promise<void> {
   for (const sql of ddls) {
     try { await prisma.$executeRawUnsafe(sql) } catch {}
   }
+
 }
 
 async function ensureSeed(): Promise<void> {
@@ -157,6 +159,14 @@ async function ensureSeed(): Promise<void> {
       })
     } catch {}
   }
+
+  // Ensure Customer has email/address columns
+  try {
+    await prisma.$executeRawUnsafe(`ALTER TABLE ${S}."Customer" ADD COLUMN IF NOT EXISTS email TEXT;`)
+  } catch {}
+  try {
+    await prisma.$executeRawUnsafe(`ALTER TABLE ${S}."Customer" ADD COLUMN IF NOT EXISTS address TEXT;`)
+  } catch {}
 }
 
 async function bootstrap() {
