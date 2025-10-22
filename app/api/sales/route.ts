@@ -15,7 +15,11 @@ export async function GET(request: Request) {
 
     // Default to today if no dates provided
     const today = new Date();
-    const defaultStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const defaultStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
     const defaultEnd = new Date(defaultStart);
     defaultEnd.setDate(defaultEnd.getDate() + 1);
 
@@ -41,13 +45,22 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
       include: {
         customer: {
-          select: { id: true, name: true, email: true, address: true },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            address: true,
+            phone: true,
+            documentNumber: true,
+          },
         },
         items: {
           include: {
             product: { select: { id: true, name: true, price: true } },
+            variant: { select: { id: true, optionKey: true } },
           },
         },
+        histories: { orderBy: { createdAt: "asc" } },
       },
     });
     return NextResponse.json({ items: sales });
@@ -77,8 +90,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Sin items" }, { status: 400 });
     for (const it of items) {
       const q = Number(it?.quantity);
-      const pid = Number(it?.productId);
-      if (!Number.isFinite(pid) || !Number.isInteger(q) || q <= 0) {
+      const pid = it?.productId !== undefined ? Number(it?.productId) : NaN;
+      const vid = it?.variantId !== undefined ? Number(it?.variantId) : NaN;
+      if (
+        (!Number.isFinite(pid) && !Number.isFinite(vid)) ||
+        !Number.isInteger(q) ||
+        q <= 0
+      ) {
         return NextResponse.json(
           { message: "Datos de item inválidos" },
           { status: 400 }
@@ -87,29 +105,78 @@ export async function POST(req: Request) {
     }
 
     const created = await prisma.$transaction(async (tx) => {
-      // Load all products involved
+      // Load products and variants involved
       type ProductRow = {
         id: number;
         name: string;
         price: number;
         stock: number;
       };
-      const productIds: number[] = items.map((it: any) => Number(it.productId));
-      const products = (await tx.product.findMany({
-        where: { id: { in: productIds } },
-        select: { id: true, name: true, price: true, stock: true },
-      })) as ProductRow[];
-      const byId = new Map<number, ProductRow>(products.map((p) => [p.id, p]));
-
-      // Validate stock and compute totals
-      for (const it of items as Array<{
+      type VariantRow = {
+        id: number;
         productId: number;
+        price: number | null;
+        stock: number;
+        isActive: boolean;
+        optionKey: string;
+        product: { id: number; name: string; price: number; stock: number };
+      };
+      const productIds: number[] = items
+        .filter((it: any) => it.productId && !it.variantId)
+        .map((it: any) => Number(it.productId));
+      const variantIds: number[] = items
+        .filter((it: any) => it.variantId)
+        .map((it: any) => Number(it.variantId));
+
+      const products = productIds.length
+        ? ((await tx.product.findMany({
+            where: { id: { in: productIds } },
+            select: { id: true, name: true, price: true, stock: true },
+          })) as ProductRow[])
+        : [];
+      const variants = variantIds.length
+        ? ((await tx.productVariant.findMany({
+            where: { id: { in: variantIds } },
+            include: {
+              product: {
+                select: { id: true, name: true, price: true, stock: true },
+              },
+            },
+          })) as unknown as VariantRow[])
+        : [];
+
+      const productById = new Map<number, ProductRow>(
+        products.map((p) => [p.id, p])
+      );
+      const variantById = new Map<number, VariantRow>(
+        variants.map((v) => [v.id, v])
+      );
+
+      // Validate stock
+      for (const it of items as Array<{
+        productId?: number;
+        variantId?: number;
         quantity: number;
       }>) {
-        const p = byId.get(Number(it.productId)) as ProductRow | undefined;
-        if (!p) throw new Error("Producto no encontrado");
-        if (p.stock < Number(it.quantity))
-          throw new Error(`Stock insuficiente para ${p.name}`);
+        const qty = Number(it.quantity);
+        if (it.variantId) {
+          const v = variantById.get(Number(it.variantId));
+          if (!v) throw new Error("Variante no encontrada");
+          if (!v.isActive) throw new Error("Variante inactiva");
+          if (v.stock < qty)
+            throw new Error(
+              `Stock insuficiente para ${v.product.name} (${
+                v.optionKey || "variante"
+              })`
+            );
+        } else {
+          const p = productById.get(Number(it.productId!)) as
+            | ProductRow
+            | undefined;
+          if (!p) throw new Error("Producto no encontrado");
+          if (p.stock < qty)
+            throw new Error(`Stock insuficiente para ${p.name}`);
+        }
       }
 
       let total = 0;
@@ -137,35 +204,62 @@ export async function POST(req: Request) {
           customerId,
           saleDate,
           total: 0, // temp, update after creating items
-          status: 'COMPLETED', // Venta del admin ya está completada
-          source: 'ADMIN', // Venta creada desde el panel admin
+          status: "COMPLETED", // Venta del admin ya está completada
+          source: "ADMIN", // Venta creada desde el panel admin
         },
       });
 
       for (const it of items as Array<{
-        productId: number;
+        productId?: number;
+        variantId?: number;
         quantity: number;
       }>) {
-        const p = byId.get(Number(it.productId)) as ProductRow;
         const quantity = Number(it.quantity);
-        const unitPrice = p.price as number;
-        const lineTotal = unitPrice * quantity;
-        total += lineTotal;
-        // create item
-        await tx.saleItem.create({
-          data: {
-            saleId: sale.id,
-            productId: p.id,
-            quantity,
-            unitPrice,
-            lineTotal,
-          },
-        });
-        // update stock
-        await tx.product.update({
-          where: { id: p.id },
-          data: { stock: (p.stock as number) - quantity },
-        });
+        if (it.variantId) {
+          const v = variantById.get(Number(it.variantId))!;
+          const unitPrice = (v.price ?? v.product.price) as number;
+          const lineTotal = unitPrice * quantity;
+          total += lineTotal;
+          await tx.saleItem.create({
+            data: {
+              saleId: sale.id,
+              productId: v.productId,
+              variantId: v.id,
+              quantity,
+              unitPrice,
+              lineTotal,
+            },
+          });
+          await tx.productVariant.update({
+            where: { id: v.id },
+            data: { stock: { decrement: quantity } },
+          });
+          const dec = Math.min(quantity, v.product.stock);
+          if (dec > 0) {
+            await tx.product.update({
+              where: { id: v.productId },
+              data: { stock: { decrement: dec } },
+            });
+          }
+        } else {
+          const p = productById.get(Number(it.productId))!;
+          const unitPrice = p.price as number;
+          const lineTotal = unitPrice * quantity;
+          total += lineTotal;
+          await tx.saleItem.create({
+            data: {
+              saleId: sale.id,
+              productId: p.id,
+              quantity,
+              unitPrice,
+              lineTotal,
+            },
+          });
+          await tx.product.update({
+            where: { id: p.id },
+            data: { stock: { decrement: quantity } },
+          });
+        }
       }
 
       const updated = await tx.sale.update({
@@ -175,6 +269,7 @@ export async function POST(req: Request) {
           items: {
             include: {
               product: { select: { id: true, name: true, price: true } },
+              variant: { select: { id: true, optionKey: true } },
             },
           },
         },

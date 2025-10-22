@@ -11,8 +11,10 @@ type UserStore = {
 }
 
 const ALL_ITEMS = {
-  products: { label: 'Gestión de productos', href: '/panel/products' },
+  products: { label: 'Catálogo de productos', href: '/panel/products' },
+  stock: { label: 'Gestión de stock', href: '/panel/stock' },
   sales: { label: 'Gestión de ventas', href: '/panel/sales' },
+  orders: { label: 'Gestión de pedidos', href: '/panel/orders' },
   customers: { label: 'Gestión de clientes', href: '/panel/customers' },
   users: { label: 'Administración de usuarios', href: '/panel/users' },
 }
@@ -33,15 +35,19 @@ export default function DashboardMenu() {
     const roles = user?.roles || []
     if (roles.includes('ADMIN')) {
       set.set('products', ALL_ITEMS.products)
+      set.set('stock', ALL_ITEMS.stock)
       set.set('sales', ALL_ITEMS.sales)
+      set.set('orders', ALL_ITEMS.orders)
       set.set('customers', ALL_ITEMS.customers)
       set.set('users', ALL_ITEMS.users)
     }
     if (roles.includes('MAINTAINER')) {
       set.set('products', ALL_ITEMS.products)
+      set.set('stock', ALL_ITEMS.stock)
     }
     if (roles.includes('CASHIER')) {
       set.set('sales', ALL_ITEMS.sales)
+      set.set('orders', ALL_ITEMS.orders)
     }
     return Array.from(set.values())
   }, [user])

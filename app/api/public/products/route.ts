@@ -10,28 +10,58 @@ export async function GET(request: Request) {
     const page = Math.max(1, Number(searchParams.get('page') || '1'))
     const pageSize = Math.min(48, Math.max(1, Number(searchParams.get('pageSize') || '12')))
 
-    const where: any = {
-      stock: { gt: 0 },
+    const nameFilter: any = q ? { name: { contains: q, mode: 'insensitive' } } : {}
+    // Disponibilidad: variantes activas con stock > 0, o compatibilidad con productos antiguos con stock > 0
+    const availability = {
+      OR: [
+        { variants: { some: { isActive: true, stock: { gt: 0 } } } },
+        { stock: { gt: 0 } },
+      ],
     }
-    if (q) {
-      where.name = { contains: q, mode: 'insensitive' }
-    }
+    const where: any = { AND: [nameFilter, availability] }
 
     const orderBy: any =
       sort === 'price_asc' ? { price: 'asc' } :
       sort === 'price_desc' ? { price: 'desc' } :
       { createdAt: 'desc' }
 
-    const [total, items] = await Promise.all([
+    const [total, rows] = await Promise.all([
       prisma.product.count({ where }),
       prisma.product.findMany({
         where,
         orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
-        select: { id: true, name: true, price: true, stock: true, entryDate: true },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          stock: true, // fallback para productos antiguos
+          entryDate: true,
+          imageBase64: true,
+          variants: {
+            where: { isActive: true },
+            select: { stock: true },
+          },
+        },
       }),
     ])
+
+    const items = rows.map((r: any) => {
+      const list: Array<{ stock: number }> = Array.isArray(r?.variants) ? r.variants : []
+      const variantStock = list.reduce((s: number, v: { stock: number }) => s + (v?.stock ?? 0), 0)
+      const totalStock = variantStock > 0 ? variantStock : (r.stock || 0)
+      const hasVariants = list.length > 0
+      return {
+        id: r.id,
+        name: r.name,
+        price: r.price,
+        stock: totalStock,
+        entryDate: r.entryDate,
+        imageBase64: (r as any).imageBase64 ?? null,
+        hasVariants,
+      }
+    })
 
     return NextResponse.json({ items, pagination: { page, pageSize, total } })
   } catch (e) {

@@ -7,10 +7,12 @@ import ScreenLoader from "@/components/ScreenLoader";
 import Link from "next/link";
 
 type Product = { id: number; name: string; price: number; stock: number };
+type Variant = { id: number; optionKey: string; stock: number; price: number | null; isActive: boolean };
 
 type SaleItem = {
   id: number;
   product: { id: number; name: string; price: number };
+  variant?: { id: number; optionKey: string } | null;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
@@ -20,6 +22,8 @@ type Customer = {
   name: string;
   email: string | null;
   address: string | null;
+  phone?: string | null;
+  documentNumber?: string | null;
 };
 type Sale = {
   id: number;
@@ -31,6 +35,7 @@ type Sale = {
   source: string;
   createdAt: string;
   items: SaleItem[];
+  histories?: Array<{ id: number; previousStatus?: string | null; newStatus: string; comment?: string | null; performedBy?: string | null; createdAt: string }>;
 };
 type SalesListResponse = { items: Sale[] };
 
@@ -61,7 +66,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   CANCELED: [],
 };
 
-type NewItem = { productId: number | ""; quantity: number };
+type NewItem = { productId: number | ""; variantId?: number | ""; quantity: number };
 
 function todayISO() {
   const d = new Date();
@@ -95,8 +100,9 @@ export default function SalesPage() {
   const [startDate, setStartDate] = useState(todayISO());
   const [endDate, setEndDate] = useState(tomorrowISO());
   const [items, setItems] = useState<NewItem[]>([
-    { productId: "", quantity: 1 },
+    { productId: "", variantId: "", quantity: 1 },
   ]);
+  const [variantsByProduct, setVariantsByProduct] = useState<Record<number, Variant[]>>({});
 
   const canSubmit = useMemo(() => {
     if (!items.length) return false;
@@ -112,12 +118,16 @@ export default function SalesPage() {
 
   const total = useMemo(() => {
     return items.reduce((acc, it) => {
-      if (!Number.isFinite(it.productId as number)) return acc;
-      const p = productById.get(it.productId as number);
+      const pid = it.productId as number;
+      const p = Number.isFinite(pid) ? productById.get(pid) : undefined;
       if (!p) return acc;
-      return acc + p.price * it.quantity;
+      const vid = it.variantId as number;
+      const variants = variantsByProduct[pid] || [];
+      const v = Number.isFinite(vid) ? variants.find((vv) => vv.id === vid) : undefined;
+      const unit = v ? (v.price ?? p.price) : p.price;
+      return acc + unit * it.quantity;
     }, 0);
-  }, [items, productById]);
+  }, [items, productById, variantsByProduct]);
 
   async function loadProducts() {
     try {
@@ -128,6 +138,17 @@ export default function SalesPage() {
       setProducts(data.items);
     } catch (e: any) {
       toast.error(e.message || "Error al cargar productos");
+    }
+  }
+
+  async function loadVariantsFor(productId: number) {
+    try {
+      const res = await fetch(`/api/products/${productId}/variants`, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setVariantsByProduct((prev) => ({ ...prev, [productId]: data.items || [] }));
+    } catch {
+      // ignore
     }
   }
 
@@ -202,10 +223,12 @@ export default function SalesPage() {
       saleDate,
       items: items
         .filter((it) => Number.isFinite(it.productId as number))
-        .map((it) => ({
-          productId: Number(it.productId),
-          quantity: it.quantity,
-        })),
+        .map((it) => {
+          const hasVariant = Number.isFinite(it.variantId as number);
+          return hasVariant
+            ? { variantId: Number(it.variantId), quantity: it.quantity }
+            : { productId: Number(it.productId), quantity: it.quantity };
+        }),
     };
 
     await runUiAction({
@@ -241,7 +264,7 @@ export default function SalesPage() {
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Gestión de Ventas</h1>
           <Link
-            href="/admin/dashboard"
+            href="/panel/dashboard"
             className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
           >
             Volver al dashboard
@@ -314,11 +337,14 @@ export default function SalesPage() {
 
           <div className="mt-6 space-y-3">
             {items.map((row, idx) => {
-              const p = Number.isFinite(row.productId as number)
-                ? productById.get(row.productId as number)
-                : undefined;
-              const warnNoStock = p && p.stock <= 0;
-              const warnQty = p && row.quantity > p.stock;
+              const pid = row.productId as number;
+              const p = Number.isFinite(pid) ? productById.get(pid) : undefined;
+              const variantList = Number.isFinite(pid) ? (variantsByProduct[pid] || []) : [];
+              const vid = row.variantId as number;
+              const v = Number.isFinite(vid) ? variantList.find((vv) => vv.id === vid) : undefined;
+              const availableStock = v ? v.stock : (p?.stock ?? 0);
+              const warnNoStock = availableStock <= 0;
+              const warnQty = row.quantity > availableStock;
               return (
                 <div key={idx} className="grid gap-3 md:grid-cols-12">
                   <div className="md:col-span-6">
@@ -334,14 +360,17 @@ export default function SalesPage() {
                             i === idx
                               ? {
                                   ...r,
-                                  productId: (e.target.value
-                                    ? Number(e.target.value)
-                                    : "") as any,
+                                  productId: (e.target.value ? Number(e.target.value) : "") as any,
+                                  variantId: "" as any,
                                 }
                               : r
                           )
                         )
                       }
+                      onBlur={(e) => {
+                        const val = e.currentTarget.value ? Number(e.currentTarget.value) : NaN;
+                        if (Number.isFinite(val)) loadVariantsFor(val);
+                      }}
                     >
                       <option value="">Seleccione producto</option>
                       {products.map((prod) => (
@@ -362,6 +391,35 @@ export default function SalesPage() {
                         Sin stock disponible
                       </p>
                     )}
+                  </div>
+                  <div className="md:col-span-4">
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Variante (opcional)
+                    </label>
+                    <select
+                      className="select-dark w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-slate-100 outline-none ring-brand-500/30 focus:ring-4"
+                      value={(row.variantId ?? "") as any}
+                      onChange={(e) =>
+                        setItems((prev) =>
+                          prev.map((r, i) =>
+                            i === idx
+                              ? {
+                                  ...r,
+                                  variantId: (e.target.value ? Number(e.target.value) : "") as any,
+                                }
+                              : r
+                          )
+                        )
+                      }
+                      disabled={!p}
+                    >
+                      <option value="">Sin variante</option>
+                      {variantList.map((vv) => (
+                        <option key={vv.id} value={vv.id} disabled={!vv.isActive || vv.stock <= 0}>
+                          {vv.optionKey} — {vv.stock <= 0 ? "Sin stock" : `Stock: ${vv.stock}`}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="md:col-span-2">
                     <label className="mb-2 block text-sm text-slate-300">
@@ -396,7 +454,7 @@ export default function SalesPage() {
                       Precio
                     </label>
                     <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-slate-200">
-                      {p ? `S/ ${p.price.toFixed(2)}` : "—"}
+                      {p ? `S/ ${((v ? (v.price ?? p.price) : p.price) as number).toFixed(2)}` : "—"}
                     </div>
                   </div>
                   <div className="md:col-span-2">
@@ -404,7 +462,7 @@ export default function SalesPage() {
                       Subtotal
                     </label>
                     <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-slate-200">
-                      {p ? `S/ ${(p.price * row.quantity).toFixed(2)}` : "—"}
+                      {p ? `S/ ${(((v ? (v.price ?? p.price) : p.price) as number) * row.quantity).toFixed(2)}` : "—"}
                     </div>
                   </div>
                   <div className="md:col-span-12 flex justify-between">
@@ -542,6 +600,7 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => Promise<voi
   const [busy, setBusy] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [comment, setComment] = useState("");
 
   const statusLabel = STATUS_LABELS[sale.status] || sale.status;
   const statusColor =
@@ -556,7 +615,7 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => Promise<voi
         const res = await fetch(`/api/sales/${sale.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: newStatus }),
+          body: JSON.stringify({ status: newStatus, comment: comment?.trim() || undefined }),
         });
         const data = await res.json();
         if (!res.ok)
@@ -567,6 +626,7 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => Promise<voi
       onSuccess: () => {
         // Close modal and trigger table reload
         setShowModal(false);
+        setComment("");
         onUpdated();
       },
     });
@@ -617,13 +677,6 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => Promise<voi
             >
               {showDetails ? 'Ocultar' : 'Ver detalle'}
             </button>
-            <button
-              onClick={() => setShowModal(true)}
-              disabled={allowedTransitions.length === 0}
-              className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-200 hover:bg-white/10 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cambiar estado
-            </button>
           </div>
         </td>
       </tr>
@@ -637,6 +690,8 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => Promise<voi
                   <div><span className="text-slate-400">Nombre:</span> {sale.customer?.name ?? '—'}</div>
                   <div><span className="text-slate-400">Email:</span> {sale.customer?.email ?? '—'}</div>
                   <div><span className="text-slate-400">Dirección:</span> {sale.customer?.address ?? '—'}</div>
+                  <div><span className="text-slate-400">Teléfono:</span> {sale.customer?.phone ?? '—'}</div>
+                  <div><span className="text-slate-400">Documento:</span> {sale.customer?.documentNumber ?? '—'}</div>
                 </div>
               </div>
               <div>
@@ -644,7 +699,13 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => Promise<voi
                 <div className="space-y-1">
                   {sale.items.map((it) => (
                     <div key={it.id} className="flex justify-between text-sm text-slate-300">
-                      <span>{it.product.name} × {it.quantity}</span>
+                      <span>
+                        {it.product.name}
+                        {it.variant?.optionKey ? (
+                          <span className="text-slate-400"> ({it.variant.optionKey})</span>
+                        ) : null}
+                        {" "}× {it.quantity}
+                      </span>
                       <span>S/ {it.lineTotal.toFixed(2)}</span>
                     </div>
                   ))}
@@ -654,13 +715,32 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => Promise<voi
                   </div>
                 </div>
               </div>
+              <div>
+                <h4 className="mb-2 text-sm font-medium text-slate-200">Historial de estados</h4>
+                {sale.histories && sale.histories.length > 0 ? (
+                  <div className="space-y-2 text-sm text-slate-300">
+                    {sale.histories.map(h => (
+                      <div key={h.id} className="rounded-lg border border-white/10 bg-white/5 p-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-200">{new Date(h.createdAt).toLocaleString('es-PE')}</span>
+                          <span className="text-xs text-slate-400">{h.performedBy ?? '—'}</span>
+                        </div>
+                        <div className="text-xs text-slate-400">{STATUS_LABELS[h.previousStatus || 'PENDING'] ?? h.previousStatus} → {STATUS_LABELS[h.newStatus] ?? h.newStatus}</div>
+                        {h.comment && <div className="mt-1 text-slate-200">{h.comment}</div>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-slate-400">Sin historial</div>
+                )}
+              </div>
             </div>
           </td>
         </tr>
       )}
 
-      {/* Modal para cambiar estado */}
-      {showModal && (
+      {/* Cambio de estado deshabilitado en esta pantalla */}
+      {false && (
         <tr>
           <td colSpan={7} className="p-0">
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => !busy && setShowModal(false)}>
@@ -691,6 +771,15 @@ function SaleRow({ sale, onUpdated }: { sale: Sale; onUpdated: () => Promise<voi
                   </div>
                 </div>
 
+                <div className="mb-4">
+                  <label className="mb-2 block text-sm text-slate-300">Comentario (opcional)</label>
+                  <textarea
+                    className="w-full min-h-[80px] rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-slate-100 outline-none ring-brand-500/30 focus:ring-4"
+                    placeholder="Escribe una nota sobre el cambio de estado"
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                  />
+                </div>
                 <div className="mb-4">
                   <p className="mb-3 text-sm text-slate-300">Seleccione el nuevo estado:</p>
                   <div className="space-y-2">

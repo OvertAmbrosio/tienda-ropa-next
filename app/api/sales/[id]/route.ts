@@ -29,8 +29,9 @@ export async function PATCH(
       return NextResponse.json({ message: 'ID inválido' }, { status: 400 })
     }
 
-    const body = await request.json().catch(() => null) as { status?: string } | null
+    const body = await request.json().catch(() => null) as { status?: string; comment?: string } | null
     const newStatus = body?.status
+    const comment = typeof body?.comment === 'string' ? body?.comment.trim() : undefined
 
     if (!newStatus || typeof newStatus !== 'string') {
       return NextResponse.json({ message: 'Estado requerido' }, { status: 400 })
@@ -57,11 +58,23 @@ export async function PATCH(
       )
     }
 
-    // Actualizar estado
-    const updated = await prisma.sale.update({
-      where: { id },
-      data: { status: newStatus as any },
-      select: { id: true, status: true, total: true },
+    // Actualizar estado y registrar historial
+    const updated = await prisma.$transaction(async (tx) => {
+      const upd = await tx.sale.update({
+        where: { id },
+        data: { status: newStatus as any },
+        select: { id: true, status: true, total: true },
+      })
+      await tx.saleHistory.create({
+        data: {
+          saleId: id,
+          previousStatus: sale.status as any,
+          newStatus: newStatus as any,
+          comment: comment && comment.length ? comment : null,
+          performedBy: (user as any)?.email || (user as any)?.name || null,
+        }
+      })
+      return upd
     })
 
     return NextResponse.json({ item: updated })

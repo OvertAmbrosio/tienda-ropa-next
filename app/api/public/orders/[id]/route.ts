@@ -1,57 +1,72 @@
-import { NextResponse } from 'next/server'
-import { prisma, ensureDbReady } from '@/lib/prisma'
+import { NextResponse } from "next/server";
+import { prisma, ensureDbReady } from "@/lib/prisma";
 
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  await ensureDbReady()
+  await ensureDbReady();
   try {
-    const id = Number(params.id)
+    const id = Number(params.id);
     if (!Number.isInteger(id)) {
-      return NextResponse.json({ message: 'ID inválido' }, { status: 400 })
+      return NextResponse.json({ message: "ID inválido" }, { status: 400 });
     }
 
-    const body = await request.json().catch(() => null) as { status?: string } | null
-    const newStatus = body?.status
+    const body = (await request.json().catch(() => null)) as {
+      status?: string;
+    } | null;
+    const newStatus = body?.status;
 
     // Solo permitir cambio de PENDING a PAID desde endpoint público
-    if (newStatus !== 'PAID') {
+    if (newStatus !== "PAID") {
       return NextResponse.json(
-        { message: 'Solo se puede marcar como pagada desde checkout' },
+        { message: "Solo se puede marcar como pagada desde checkout" },
         { status: 400 }
-      )
+      );
     }
 
     // Obtener orden actual
     const sale = await prisma.sale.findUnique({
       where: { id },
-      select: { id: true, status: true },
-    })
+      select: { id: true, status: true, trackingCode: true },
+    });
 
     if (!sale) {
-      return NextResponse.json({ message: 'Orden no encontrada' }, { status: 404 })
+      return NextResponse.json(
+        { message: "Orden no encontrada" },
+        { status: 404 }
+      );
     }
 
     // Solo permitir si está en PENDING
-    if (sale.status !== 'PENDING') {
+    if (sale.status !== "PENDING") {
       return NextResponse.json(
         { message: `No se puede pagar una orden en estado ${sale.status}` },
         { status: 400 }
-      )
+      );
     }
 
     // Actualizar a PAID
     const updated = await prisma.sale.update({
       where: { id },
-      data: { status: 'PAID' as any },
-      select: { id: true, status: true, total: true },
-    })
+      data: { status: "PAID" as any },
+      select: { id: true, status: true, total: true, trackingCode: true },
+    });
 
-    return NextResponse.json({ item: updated })
+    await prisma.saleHistory.create({
+      data: {
+        saleId: id,
+        previousStatus: "PENDING" as any,
+        newStatus: "PAID" as any,
+        comment: "Pago confirmado",
+        performedBy: "Cliente",
+      },
+    });
+
+    return NextResponse.json({ item: updated });
   } catch (error: any) {
-    const message = error?.message || 'Error al procesar el pago'
-    console.error('[PATCH /api/public/orders/:id] Error:', message)
-    return NextResponse.json({ message }, { status: 500 })
+    const message = error?.message || "Error al procesar el pago";
+    console.error("[PATCH /api/public/orders/:id] Error:", message);
+    return NextResponse.json({ message }, { status: 500 });
   }
 }
