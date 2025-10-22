@@ -443,10 +443,11 @@ export default function VariantsManagementPage() {
                           />
                           {option.name.toLowerCase().includes('color') && (
                             <input
-                              value={editValueForm.hexColor}
+                              type="color"
+                              value={editValueForm.hexColor || '#000000'}
                               onChange={(e) => setEditValueForm(prev => ({ ...prev, hexColor: e.target.value }))}
-                              placeholder="#hex"
-                              className="w-16 rounded border-none bg-transparent px-1 text-xs text-slate-100 outline-none"
+                              className="h-6 w-10 cursor-pointer rounded border border-white/10 bg-white/5 p-0"
+                              title="Seleccionar color"
                             />
                           )}
                           <button
@@ -504,13 +505,14 @@ export default function VariantsManagementPage() {
                     />
                     {option.name.toLowerCase().includes('color') && (
                       <input
-                        placeholder="#hex"
-                        value={newValues[option.id]?.hexColor || ''}
+                        type="color"
+                        value={newValues[option.id]?.hexColor || '#000000'}
                         onChange={(e) => setNewValues(prev => ({
                           ...prev,
                           [option.id]: { ...prev[option.id], hexColor: e.target.value }
                         }))}
-                        className="w-24 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-100 outline-none"
+                        className="h-9 w-12 cursor-pointer rounded-lg border border-white/10 bg-white/5 p-0"
+                        title="Seleccionar color"
                       />
                     )}
                     <button
