@@ -170,7 +170,7 @@ export default function CatalogPage() {
       {/* Top Right Buttons */}
       <div className="fixed right-6 top-6 z-50 flex items-center gap-3">
         <Link
-          href="/admin"
+          href="/panel"
           className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-slate-100 shadow-lg backdrop-blur hover:bg-white/10"
         >
           <svg
@@ -192,7 +192,7 @@ export default function CatalogPage() {
               d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
             />
           </svg>
-          <span className="text-sm">Admin</span>
+          <span className="text-sm">Iniciar Sesión</span>
         </Link>
         <button
           aria-label="Carrito"

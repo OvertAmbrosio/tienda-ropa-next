@@ -28,7 +28,7 @@ export default function LoginForm() {
           localStorage.setItem("user", JSON.stringify(res.user));
         }
         setNavigating(true);
-        router.push("/admin/dashboard");
+        router.push("/panel/dashboard");
       },
       onError: (err) => setError(err.message),
     });

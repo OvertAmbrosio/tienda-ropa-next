@@ -7,7 +7,7 @@ export function middleware(req: NextRequest) {
   // Public paths that don't require auth
   const PUBLIC_PATHS = [
     '/',
-    '/admin',
+    '/panel',
     '/api/login',
     '/api/logout',
     '/favicon.ico',
@@ -26,7 +26,7 @@ export function middleware(req: NextRequest) {
     const session = req.cookies.get('session')?.value
     if (!session) {
       const url = req.nextUrl.clone()
-      url.pathname = '/admin'
+      url.pathname = '/panel'
       return NextResponse.redirect(url)
     }
   }

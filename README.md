@@ -18,35 +18,36 @@ Visita: http://localhost:3000
 
 Dashboard (después de login): http://localhost:3000/dashboard
 
-## Base de datos (Prisma + SQLite)
-Se utiliza Prisma ORM con SQLite. La base de datos se guarda en `db/store.db`.
+## Base de datos (Prisma + PostgreSQL)
+La app usa Prisma con PostgreSQL vía `DATABASE_URL`. Las migraciones están en `prisma/migrations/` y los datos iniciales (roles, usuarios y productos de ejemplo) se crean automáticamente al iniciar la app por primera vez mediante `ensureDbReady()`.
 
-1) Crear `.env` a partir de `.env.example`:
+1) Crear `.env` a partir de `.env.example` y definir `DATABASE_URL` a tu Postgres:
 ```bash
 cp .env.example .env
+# Ejemplos de DATABASE_URL
+# Local:     postgresql://user:password@localhost:5432/tienda?schema=public
+# Neon/Supabase/Cloud: usar la URL provista por tu servicio
 ```
 
-2) Instalar dependencias y generar el cliente de Prisma:
+2) Generar Prisma Client y aplicar migraciones:
 ```bash
-npm install
-npx prisma generate
-```
-
-3) Ejecutar migraciones (creará el archivo SQLite):
-```bash
+npx prisma generate --accelerate
 npx prisma migrate dev --name init
 ```
 
-4) Sembrar datos (crea usuario admin):
-```bash
-npm run prisma:seed
-```
-
-## Desarrollo
+3) Iniciar la app (bootstrap y seed automáticos en el primer request):
 ```bash
 npm run dev
 ```
-Visita: http://localhost:3000
+Abre http://localhost:3000 o realiza un POST a `/api/login` para disparar el bootstrap.
+
+## Scripts disponibles
+- `npm run dev`: inicia el servidor de desarrollo en el puerto 3000.
+- `npm run build`: `prisma generate --accelerate` + `next build`.
+- `npm run start`: inicia en modo producción en el puerto 3000 (requiere `build`).
+- `npm run lint`: ejecuta ESLint.
+- `npm run prisma:generate`: genera Prisma Client con Accelerate.
+- `npm run start:prod`: genera Prisma Client, build y arranca producción en 3000.
 
 ## Credenciales de prueba
 - Admin: `admin@tienda.com` / `admin123`
@@ -60,9 +61,10 @@ Visita: http://localhost:3000
 - `app/layout.tsx` y `app/globals.css`: Layout y estilos globales.
 - `lib/prisma.ts`: Singleton de Prisma Client.
 - `prisma/schema.prisma`: Esquema de la base de datos.
-- `prisma/seed.mjs`: Script de seed.
+  El seed inicial es automático en `lib/prisma.ts` mediante `ensureDbReady()`.
 
 ## Próximos pasos sugeridos
 - Conectar autenticación real (NextAuth, JWT o backend propio).
 - Añadir dashboard y gestión de productos/categorías/inventario.
 - Diseñar componentes UI coherentes con la identidad de marca.
+
