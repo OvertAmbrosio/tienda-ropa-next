@@ -47,34 +47,42 @@ export default function VariantsManagementPage() {
   const params = useParams();
   const router = useRouter();
   const productId = Number(params.id);
-  
+
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
+
   // Opciones y valores
   const [options, setOptions] = useState<ProductOption[]>([]);
   const [newOption, setNewOption] = useState({ name: "", position: 0 });
-  const [newValues, setNewValues] = useState<Record<number, { value: string; hexColor?: string }>>({});
-  
+  const [newValues, setNewValues] = useState<
+    Record<number, { value: string; hexColor?: string }>
+  >({});
+
   // Variantes
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [newVariant, setNewVariant] = useState({
     sku: "",
     stock: "",
-    selectedValues: {} as Record<number, number>
+    selectedValues: {} as Record<number, number>,
   });
-  
+
   const [editingVariant, setEditingVariant] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ stock: "", isActive: true });
-  
+
   // Estado para editar opciones
   const [editingOption, setEditingOption] = useState<number | null>(null);
-  const [editOptionForm, setEditOptionForm] = useState({ name: "", position: 0 });
-  
+  const [editOptionForm, setEditOptionForm] = useState({
+    name: "",
+    position: 0,
+  });
+
   // Estado para editar valores
   const [editingValue, setEditingValue] = useState<number | null>(null);
-  const [editValueForm, setEditValueForm] = useState({ value: "", hexColor: "" });
+  const [editValueForm, setEditValueForm] = useState({
+    value: "",
+    hexColor: "",
+  });
 
   async function fetchProductData() {
     setLoading(true);
@@ -82,19 +90,22 @@ export default function VariantsManagementPage() {
       const [prodRes, optRes, varRes] = await Promise.all([
         fetch(`/api/products/${productId}`, { cache: "no-store" }),
         fetch(`/api/products/${productId}/options`, { cache: "no-store" }),
-        fetch(`/api/products/${productId}/variants`, { cache: "no-store" })
+        fetch(`/api/products/${productId}/variants`, { cache: "no-store" }),
       ]);
-      
+
       const [prodData, optData, varData] = await Promise.all([
         prodRes.json(),
         optRes.json(),
-        varRes.json()
+        varRes.json(),
       ]);
-      
-      if (!prodRes.ok) throw new Error(prodData?.message || "Error al cargar producto");
-      if (!optRes.ok) throw new Error(optData?.message || "Error al cargar opciones");
-      if (!varRes.ok) throw new Error(varData?.message || "Error al cargar variantes");
-      
+
+      if (!prodRes.ok)
+        throw new Error(prodData?.message || "Error al cargar producto");
+      if (!optRes.ok)
+        throw new Error(optData?.message || "Error al cargar opciones");
+      if (!varRes.ok)
+        throw new Error(varData?.message || "Error al cargar variantes");
+
       setProduct(prodData.item || null);
       setOptions((optData.items || []) as ProductOption[]);
       setVariants((varData.items || []) as ProductVariant[]);
@@ -116,19 +127,19 @@ export default function VariantsManagementPage() {
       setLoading: setSaving,
       action: async () => {
         const res = await fetch(`/api/products/${productId}/options`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newOption)
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newOption),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || 'Error al crear opción');
+        if (!res.ok) throw new Error(data?.message || "Error al crear opción");
         return true;
       },
-      successMessage: 'Opción creada',
+      successMessage: "Opción creada",
       onSuccess: () => {
         setNewOption({ name: "", position: 0 });
         fetchProductData();
-      }
+      },
     });
   }
 
@@ -136,20 +147,24 @@ export default function VariantsManagementPage() {
     await runUiAction({
       setLoading: setSaving,
       action: async () => {
-        const res = await fetch(`/api/products/${productId}/options/${optionId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(editOptionForm)
-        });
+        const res = await fetch(
+          `/api/products/${productId}/options/${optionId}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(editOptionForm),
+          }
+        );
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || 'Error al actualizar opción');
+        if (!res.ok)
+          throw new Error(data?.message || "Error al actualizar opción");
         return true;
       },
-      successMessage: 'Opción actualizada',
+      successMessage: "Opción actualizada",
       onSuccess: () => {
         setEditingOption(null);
         fetchProductData();
-      }
+      },
     });
   }
 
@@ -157,15 +172,19 @@ export default function VariantsManagementPage() {
     await runUiAction({
       setLoading: setSaving,
       action: async () => {
-        const res = await fetch(`/api/products/${productId}/options/${optionId}`, {
-          method: 'DELETE'
-        });
+        const res = await fetch(
+          `/api/products/${productId}/options/${optionId}`,
+          {
+            method: "DELETE",
+          }
+        );
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || 'Error al eliminar opción');
+        if (!res.ok)
+          throw new Error(data?.message || "Error al eliminar opción");
         return true;
       },
-      successMessage: 'Opción eliminada',
-      onSuccess: fetchProductData
+      successMessage: "Opción eliminada",
+      onSuccess: fetchProductData,
     });
   }
 
@@ -173,68 +192,85 @@ export default function VariantsManagementPage() {
     await runUiAction({
       setLoading: setSaving,
       action: async () => {
-        const res = await fetch(`/api/products/${productId}/options/${optionId}/values/${valueId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(editValueForm)
-        });
+        const res = await fetch(
+          `/api/products/${productId}/options/${optionId}/values/${valueId}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(editValueForm),
+          }
+        );
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || 'Error al actualizar valor');
+        if (!res.ok)
+          throw new Error(data?.message || "Error al actualizar valor");
         return true;
       },
-      successMessage: 'Valor actualizado',
+      successMessage: "Valor actualizado",
       onSuccess: () => {
         setEditingValue(null);
         fetchProductData();
-      }
+      },
     });
   }
 
   async function deleteValue(optionId: number, valueId: number) {
-    if (!confirm('¿Eliminar este valor?')) return;
+    if (!confirm("¿Eliminar este valor?")) return;
     await runUiAction({
       setLoading: setSaving,
       action: async () => {
-        const res = await fetch(`/api/products/${productId}/options/${optionId}/values/${valueId}`, {
-          method: 'DELETE'
-        });
+        const res = await fetch(
+          `/api/products/${productId}/options/${optionId}/values/${valueId}`,
+          {
+            method: "DELETE",
+          }
+        );
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || 'Error al eliminar valor');
+        if (!res.ok)
+          throw new Error(data?.message || "Error al eliminar valor");
         return true;
       },
-      successMessage: 'Valor eliminado',
-      onSuccess: fetchProductData
+      successMessage: "Valor eliminado",
+      onSuccess: fetchProductData,
     });
   }
 
   async function addValue(optionId: number) {
     const value = newValues[optionId];
     if (!value?.value?.trim()) return;
-    
+
     await runUiAction({
       setLoading: setSaving,
       action: async () => {
-        const res = await fetch(`/api/products/${productId}/options/${optionId}/values`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ value: value.value, hexColor: value.hexColor || null })
-        });
+        const res = await fetch(
+          `/api/products/${productId}/options/${optionId}/values`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              value: value.value,
+              hexColor: value.hexColor || null,
+            }),
+          }
+        );
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || 'Error al agregar valor');
+        if (!res.ok) throw new Error(data?.message || "Error al agregar valor");
         return true;
       },
-      successMessage: 'Valor agregado',
+      successMessage: "Valor agregado",
       onSuccess: () => {
-        setNewValues(prev => ({ ...prev, [optionId]: { value: "", hexColor: "" } }));
+        setNewValues((prev) => ({
+          ...prev,
+          [optionId]: { value: "", hexColor: "" },
+        }));
         fetchProductData();
-      }
+      },
     });
   }
 
   // Variantes
   function canCreateVariant() {
     if (!newVariant.stock || Number(newVariant.stock) <= 0) return false;
-    
+
     // Debe seleccionar un valor para cada opción
     for (const opt of options) {
       if (!newVariant.selectedValues[opt.id]) return false;
@@ -244,32 +280,35 @@ export default function VariantsManagementPage() {
 
   async function createVariant() {
     if (!canCreateVariant()) return;
-    
-    const valueIds = Object.values(newVariant.selectedValues).filter(Boolean) as number[];
+
+    const valueIds = Object.values(newVariant.selectedValues).filter(
+      Boolean
+    ) as number[];
     const stock = Number(newVariant.stock);
-    
+
     await runUiAction({
       setLoading: setSaving,
       action: async () => {
         const res = await fetch(`/api/products/${productId}/variants`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sku: newVariant.sku || undefined,
             stock,
             isActive: true,
-            valueIds
-          })
+            valueIds,
+          }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || 'Error al crear variante');
+        if (!res.ok)
+          throw new Error(data?.message || "Error al crear variante");
         return true;
       },
-      successMessage: 'Variante creada',
+      successMessage: "Variante creada",
       onSuccess: () => {
         setNewVariant({ sku: "", stock: "", selectedValues: {} });
         fetchProductData();
-      }
+      },
     });
   }
 
@@ -277,23 +316,27 @@ export default function VariantsManagementPage() {
     await runUiAction({
       setLoading: setSaving,
       action: async () => {
-        const res = await fetch(`/api/products/${productId}/variants/${variantId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            stock: Number(editForm.stock),
-            isActive: editForm.isActive
-          })
-        });
+        const res = await fetch(
+          `/api/products/${productId}/variants/${variantId}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              stock: Number(editForm.stock),
+              isActive: editForm.isActive,
+            }),
+          }
+        );
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || 'Error al actualizar variante');
+        if (!res.ok)
+          throw new Error(data?.message || "Error al actualizar variante");
         return true;
       },
-      successMessage: 'Variante actualizada',
+      successMessage: "Variante actualizada",
       onSuccess: () => {
         setEditingVariant(null);
         fetchProductData();
-      }
+      },
     });
   }
 
@@ -301,24 +344,28 @@ export default function VariantsManagementPage() {
     await runUiAction({
       setLoading: setSaving,
       action: async () => {
-        const res = await fetch(`/api/products/${productId}/variants/${variantId}`, {
-          method: 'DELETE'
-        });
+        const res = await fetch(
+          `/api/products/${productId}/variants/${variantId}`,
+          {
+            method: "DELETE",
+          }
+        );
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || 'Error al eliminar variante');
+        if (!res.ok)
+          throw new Error(data?.message || "Error al eliminar variante");
         return true;
       },
-      successMessage: 'Variante eliminada',
-      onSuccess: fetchProductData
+      successMessage: "Variante eliminada",
+      onSuccess: fetchProductData,
     });
   }
 
   function getVariantLabel(variant: ProductVariant) {
-    if (variant.optionKey === 'DEFAULT') return 'Variante base';
+    if (variant.optionKey === "DEFAULT") return "Variante base";
     return variant.values
       .sort((a, b) => a.optionPosition - b.optionPosition)
-      .map(v => v.value)
-      .join(' / ');
+      .map((v) => v.value)
+      .join(" / ");
   }
 
   if (!product && !loading) {
@@ -326,7 +373,10 @@ export default function VariantsManagementPage() {
       <main className="min-h-screen px-6 py-10">
         <div className="mx-auto max-w-5xl text-center">
           <p className="text-slate-400">Producto no encontrado</p>
-          <Link href="/panel/products" className="mt-4 inline-block rounded-lg bg-white/10 px-4 py-2 text-slate-200 hover:bg-white/20">
+          <Link
+            href="/panel/products"
+            className="mt-4 inline-block rounded-lg bg-white/10 px-4 py-2 text-slate-200 hover:bg-white/20"
+          >
             Volver a productos
           </Link>
         </div>
@@ -345,7 +395,10 @@ export default function VariantsManagementPage() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/panel/products" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 hover:bg-white/10">
+            <Link
+              href="/panel/products"
+              className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
+            >
               Volver a productos
             </Link>
           </div>
@@ -355,12 +408,14 @@ export default function VariantsManagementPage() {
           {/* Panel de Opciones */}
           <section className="rounded-xl border border-white/10 bg-white/5 p-6">
             <h2 className="mb-4 text-lg font-medium">Opciones del Producto</h2>
-            
+
             <div className="mb-4 grid gap-2 md:grid-cols-3">
               <input
                 placeholder="Nombre (ej: Color, Talla)"
                 value={newOption.name}
-                onChange={(e) => setNewOption(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setNewOption((prev) => ({ ...prev, name: e.target.value }))
+                }
                 className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none md:col-span-2"
               />
               <button
@@ -373,21 +428,34 @@ export default function VariantsManagementPage() {
             </div>
 
             <div className="space-y-4">
-              {options.map(option => (
-                <div key={option.id} className="rounded-lg border border-white/10 bg-white/5 p-3">
+              {options.map((option) => (
+                <div
+                  key={option.id}
+                  className="rounded-lg border border-white/10 bg-white/5 p-3"
+                >
                   <div className="mb-2 flex items-center justify-between">
                     {editingOption === option.id ? (
                       <div className="flex flex-1 items-center gap-2">
                         <input
                           value={editOptionForm.name}
-                          onChange={(e) => setEditOptionForm(prev => ({ ...prev, name: e.target.value }))}
+                          onChange={(e) =>
+                            setEditOptionForm((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                          }
                           placeholder="Nombre"
                           className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-100 outline-none"
                         />
                         <input
                           type="number"
                           value={editOptionForm.position}
-                          onChange={(e) => setEditOptionForm(prev => ({ ...prev, position: Number(e.target.value) }))}
+                          onChange={(e) =>
+                            setEditOptionForm((prev) => ({
+                              ...prev,
+                              position: Number(e.target.value),
+                            }))
+                          }
                           placeholder="Pos"
                           className="w-16 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-sm text-slate-100 outline-none"
                         />
@@ -407,12 +475,20 @@ export default function VariantsManagementPage() {
                       </div>
                     ) : (
                       <>
-                        <h3 className="font-medium text-slate-100">{option.name} <span className="text-xs text-slate-400">(pos: {option.position})</span></h3>
+                        <h3 className="font-medium text-slate-100">
+                          {option.name}{" "}
+                          <span className="text-xs text-slate-400">
+                            (pos: {option.position})
+                          </span>
+                        </h3>
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
                               setEditingOption(option.id);
-                              setEditOptionForm({ name: option.name, position: option.position });
+                              setEditOptionForm({
+                                name: option.name,
+                                position: option.position,
+                              });
                             }}
                             disabled={saving}
                             className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 hover:bg-white/10"
@@ -430,22 +506,35 @@ export default function VariantsManagementPage() {
                       </>
                     )}
                   </div>
-                  
+
                   <div className="mb-2 flex flex-wrap gap-2">
-                    {option.values.map(val => (
+                    {option.values.map((val) =>
                       editingValue === val.id ? (
-                        <div key={val.id} className="flex items-center gap-1 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-2 py-1">
+                        <div
+                          key={val.id}
+                          className="flex items-center gap-1 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-2 py-1"
+                        >
                           <input
                             value={editValueForm.value}
-                            onChange={(e) => setEditValueForm(prev => ({ ...prev, value: e.target.value }))}
+                            onChange={(e) =>
+                              setEditValueForm((prev) => ({
+                                ...prev,
+                                value: e.target.value,
+                              }))
+                            }
                             placeholder="Valor"
                             className="w-20 rounded border-none bg-transparent px-1 text-xs text-slate-100 outline-none"
                           />
-                          {option.name.toLowerCase().includes('color') && (
+                          {option.name.toLowerCase().includes("color") && (
                             <input
                               type="color"
-                              value={editValueForm.hexColor || '#000000'}
-                              onChange={(e) => setEditValueForm(prev => ({ ...prev, hexColor: e.target.value }))}
+                              value={editValueForm.hexColor || "#000000"}
+                              onChange={(e) =>
+                                setEditValueForm((prev) => ({
+                                  ...prev,
+                                  hexColor: e.target.value,
+                                }))
+                              }
                               className="h-6 w-10 cursor-pointer rounded border border-white/10 bg-white/5 p-0"
                               title="Seleccionar color"
                             />
@@ -466,15 +555,24 @@ export default function VariantsManagementPage() {
                           </button>
                         </div>
                       ) : (
-                        <span key={val.id} className="group inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200">
+                        <span
+                          key={val.id}
+                          className="group inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200"
+                        >
                           {val.value}
                           {val.hexColor && (
-                            <span className="h-3 w-3 rounded-full border border-white/20" style={{ backgroundColor: val.hexColor }} />
+                            <span
+                              className="h-3 w-3 rounded-full border border-white/20"
+                              style={{ backgroundColor: val.hexColor }}
+                            />
                           )}
                           <button
                             onClick={() => {
                               setEditingValue(val.id);
-                              setEditValueForm({ value: val.value, hexColor: val.hexColor || '' });
+                              setEditValueForm({
+                                value: val.value,
+                                hexColor: val.hexColor || "",
+                              });
                             }}
                             className="ml-1 opacity-0 transition-opacity group-hover:opacity-100 hover:text-emerald-400"
                             title="Editar"
@@ -490,34 +588,46 @@ export default function VariantsManagementPage() {
                           </button>
                         </span>
                       )
-                    ))}
+                    )}
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <input
                       placeholder="Nuevo valor"
-                      value={newValues[option.id]?.value || ''}
-                      onChange={(e) => setNewValues(prev => ({
-                        ...prev,
-                        [option.id]: { ...prev[option.id], value: e.target.value }
-                      }))}
+                      value={newValues[option.id]?.value || ""}
+                      onChange={(e) =>
+                        setNewValues((prev) => ({
+                          ...prev,
+                          [option.id]: {
+                            ...prev[option.id],
+                            value: e.target.value,
+                          },
+                        }))
+                      }
                       className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-100 outline-none"
                     />
-                    {option.name.toLowerCase().includes('color') && (
+                    {option.name.toLowerCase().includes("color") && (
                       <input
                         type="color"
-                        value={newValues[option.id]?.hexColor || '#000000'}
-                        onChange={(e) => setNewValues(prev => ({
-                          ...prev,
-                          [option.id]: { ...prev[option.id], hexColor: e.target.value }
-                        }))}
+                        value={newValues[option.id]?.hexColor || "#000000"}
+                        onChange={(e) =>
+                          setNewValues((prev) => ({
+                            ...prev,
+                            [option.id]: {
+                              ...prev[option.id],
+                              hexColor: e.target.value,
+                            },
+                          }))
+                        }
                         className="h-9 w-12 cursor-pointer rounded-lg border border-white/10 bg-white/5 p-0"
                         title="Seleccionar color"
                       />
                     )}
                     <button
                       onClick={() => addValue(option.id)}
-                      disabled={saving || !(newValues[option.id]?.value || '').trim()}
+                      disabled={
+                        saving || !(newValues[option.id]?.value || "").trim()
+                      }
                       className="rounded-lg bg-white/10 px-3 py-2 text-xs text-slate-200 hover:bg-white/20 disabled:opacity-50"
                     >
                       Agregar
@@ -531,48 +641,61 @@ export default function VariantsManagementPage() {
           {/* Panel de Variantes */}
           <section className="rounded-xl border border-white/10 bg-white/5 p-6">
             <h2 className="mb-4 text-lg font-medium">Variantes</h2>
-            
+
             <div className="mb-4 space-y-3">
               <div className="grid gap-2 md:grid-cols-2">
                 <input
                   placeholder="SKU (opcional)"
                   value={newVariant.sku}
-                  onChange={(e) => setNewVariant(prev => ({ ...prev, sku: e.target.value }))}
+                  onChange={(e) =>
+                    setNewVariant((prev) => ({ ...prev, sku: e.target.value }))
+                  }
                   className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none"
                 />
                 <input
                   type="number"
                   placeholder="Stock inicial"
                   value={newVariant.stock}
-                  onChange={(e) => setNewVariant(prev => ({ ...prev, stock: e.target.value }))}
+                  onChange={(e) =>
+                    setNewVariant((prev) => ({
+                      ...prev,
+                      stock: e.target.value,
+                    }))
+                  }
                   className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none"
                 />
               </div>
-              
+
               <div className="grid gap-2 md:grid-cols-2">
-                {options.map(option => (
+                {options.map((option) => (
                   <div key={option.id}>
-                    <label className="mb-1 block text-xs text-slate-400">{option.name}</label>
+                    <label className="mb-1 block text-xs text-slate-400">
+                      {option.name}
+                    </label>
                     <select
-                      value={newVariant.selectedValues[option.id] || ''}
-                      onChange={(e) => setNewVariant(prev => ({
-                        ...prev,
-                        selectedValues: {
-                          ...prev.selectedValues,
-                          [option.id]: Number(e.target.value)
-                        }
-                      }))}
+                      value={newVariant.selectedValues[option.id] || ""}
+                      onChange={(e) =>
+                        setNewVariant((prev) => ({
+                          ...prev,
+                          selectedValues: {
+                            ...prev.selectedValues,
+                            [option.id]: Number(e.target.value),
+                          },
+                        }))
+                      }
                       className="w-full rounded-lg border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 outline-none"
                     >
                       <option value="">Seleccionar...</option>
-                      {option.values.map(val => (
-                        <option key={val.id} value={val.id}>{val.value}</option>
+                      {option.values.map((val) => (
+                        <option key={val.id} value={val.id}>
+                          {val.value}
+                        </option>
                       ))}
                     </select>
                   </div>
                 ))}
               </div>
-              
+
               <button
                 onClick={createVariant}
                 disabled={saving || !canCreateVariant()}
@@ -583,8 +706,11 @@ export default function VariantsManagementPage() {
             </div>
 
             <div className="space-y-2">
-              {variants.map(variant => (
-                <div key={variant.id} className="rounded-lg border border-white/10 bg-white/5 p-3">
+              {variants.map((variant) => (
+                <div
+                  key={variant.id}
+                  className="rounded-lg border border-white/10 bg-white/5 p-3"
+                >
                   {editingVariant === variant.id ? (
                     <>
                       <div className="grid gap-2 md:grid-cols-2">
@@ -592,14 +718,24 @@ export default function VariantsManagementPage() {
                           type="number"
                           placeholder="Stock"
                           value={editForm.stock}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, stock: e.target.value }))}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              stock: e.target.value,
+                            }))
+                          }
                           className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none"
                         />
                         <label className="flex items-center gap-2 text-sm text-slate-200">
                           <input
                             type="checkbox"
                             checked={editForm.isActive}
-                            onChange={(e) => setEditForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                            onChange={(e) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                isActive: e.target.checked,
+                              }))
+                            }
                           />
                           Activo
                         </label>
@@ -627,9 +763,13 @@ export default function VariantsManagementPage() {
                           {getVariantLabel(variant)}
                         </div>
                         <div className="text-xs text-slate-400">
-                          SKU: {variant.sku} | 
-                          Stock: {variant.stock}
-                          {!variant.isActive && <span className="ml-2 text-amber-400"> | Inactivo</span>}
+                          SKU: {variant.sku} | Stock: {variant.stock}
+                          {!variant.isActive && (
+                            <span className="ml-2 text-amber-400">
+                              {" "}
+                              | Inactivo
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -638,7 +778,7 @@ export default function VariantsManagementPage() {
                             setEditingVariant(variant.id);
                             setEditForm({
                               stock: variant.stock.toString(),
-                              isActive: variant.isActive
+                              isActive: variant.isActive,
                             });
                           }}
                           className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 hover:bg-white/10"
